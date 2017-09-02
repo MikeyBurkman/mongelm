@@ -26,7 +26,15 @@ const cors = corsMiddleware({
 server.pre(cors.preflight);
 server.use(cors.actual);
 
-server.get('/collection/:id', function (req, res, next) {
+server.get('/collections', (req, res, next) => {
+    const data = ['FooCollection', 'PAYLOAD_QUEUE'];
+    Promise.delay(1000).then(() => {
+        res.send(data);
+        return next;
+    })
+});
+
+server.get('/collection/:id', (req, res, next) => {
     const id = req.params.id;
 
     const data = R.range(0, 10).map(() => ({
@@ -34,7 +42,7 @@ server.get('/collection/:id', function (req, res, next) {
         name: 'foo'
     }));
 
-    Promise.delay(300).then(() => {
+    Promise.delay(1500).then(() => {
         res.send(data);
         return next();
     });
