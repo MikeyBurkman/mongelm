@@ -193,12 +193,7 @@ drawFetchedData collection =
 
         Fetched ( name, data ) ->
             let
-                allKeys : List String
-                allKeys =
-                    List.map Dict.keys data
-                        |> List.map Set.fromList
-                        |> List.foldl Set.union Set.empty
-                        |> Set.toList
+                allKeys = getAllRowKeys data
 
                 drawHeader : String -> Html Msg
                 drawHeader name =
@@ -254,6 +249,15 @@ httpErrorToString error =
             "Parsing Error: " ++ message
 
 
+
+-- MISC
+
+getAllRowKeys : List DataRow -> List String
+getAllRowKeys rows =
+    List.map Dict.keys rows
+        |> List.map Set.fromList
+        |> List.foldl Set.union Set.empty
+        |> Set.toList
 
 -- MAIN
 
