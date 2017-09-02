@@ -1,0 +1,16 @@
+{
+  "name": "elm-mongo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "run-p start-front start-back",
+    "start-front": "cd front && yarn start",
+    "start-back": "cd back && yarn start"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "npm-run-all": "^4.1.1"
+  }
+}
