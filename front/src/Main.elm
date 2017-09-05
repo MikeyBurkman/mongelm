@@ -9,10 +9,13 @@ import Navigation exposing (Location)
 import UrlParser exposing ((</>))
 import Dict exposing (Dict)
 import Set exposing (Set)
+import Bootstrap.Grid.Row as Row
 import Bootstrap.Alert as Alert
 import Bootstrap.CDN as CDN
 import Bootstrap.Grid as Grid
 import Bootstrap.ListGroup as ListGroup
+import Bootstrap.Progress as Progress
+import Bootstrap.Table as Table
 
 
 host : String
@@ -149,8 +152,25 @@ view : Model -> Html Msg
 view model =
     Grid.container []
         [ CDN.stylesheet
-        , Grid.row [] [ (Grid.col [] [ drawStatus model.status ]) ]
-        , Grid.row [] [ (Grid.col [] [ drawCollections model.collectionNames ]) ]
+        , Grid.row
+            [ Row.attrs
+                [ style
+                    [ ( "position", "fixed" )
+                    , ( "top", "0" )
+                    , ( "width", "100%" )
+                    , ("z-index", "9999")
+                    ]
+                ]
+            ]
+            [ (Grid.col [] [ drawStatus model.status ]) ]
+        , Grid.row
+            [ Row.attrs
+                [ style
+                    [ ( "margin-top", "60px" )
+                    ]
+                ]
+            ]
+            [ (Grid.col [] [ drawCollections model.collectionNames ]) ]
         , Grid.row [] [ (Grid.col [] [ drawFetchedData model.currentCollection ]) ]
         ]
 
@@ -162,7 +182,12 @@ drawStatus status =
             Alert.success [ text "Success" ]
 
         StatusFetchingData ->
-            Alert.info [ text "Fetching..." ]
+            Progress.progress
+                [ Progress.value 100
+                , Progress.animated
+                , Progress.label "Fetching..."
+                , Progress.height 32
+                ]
 
         StatusServerError error ->
             Alert.danger [ text (httpErrorToString error) ]
@@ -189,29 +214,27 @@ drawFetchedData : CurCollection -> Html Msg
 drawFetchedData collection =
     case collection of
         NotFetched ->
-            span [] [ text "No Data To Display" ]
+            div [] [ h3 [] [ text "No Data To Display" ] ]
 
         Fetched ( name, data ) ->
             let
-                allKeys = getAllRowKeys data
+                allKeys =
+                    getAllRowKeys data
 
-                drawHeader : String -> Html Msg
                 drawHeader name =
-                    th [] [ text name ]
-
-                headerRow =
-                    tr [] (List.map drawHeader allKeys)
-
-                dataRows =
-                    drawCollectionData allKeys data
+                    Table.th [] [ text name ]
             in
                 div []
                     [ h3 [] [ text name ]
-                    , table [] ([ headerRow ] ++ dataRows)
+                    , Table.table
+                        { options = [ Table.striped, Table.hover, Table.bordered ]
+                        , thead = Table.simpleThead (List.map drawHeader allKeys)
+                        , tbody = Table.tbody [] (drawCollectionData allKeys data)
+                        }
                     ]
 
 
-drawCollectionData : List String -> List DataRow -> List (Html Msg)
+drawCollectionData : List String -> List DataRow -> List (Table.Row Msg)
 drawCollectionData keys rows =
     let
         getVal : String -> DataRow -> String
@@ -223,9 +246,9 @@ drawCollectionData keys rows =
                 Just val ->
                     val
 
-        drawRow : DataRow -> Html Msg
+        drawRow : DataRow -> Table.Row Msg
         drawRow row =
-            tr [] (List.map (\key -> td [] [ text (getVal key row) ]) keys)
+            Table.tr [] (List.map (\key -> Table.td [] [ text (getVal key row) ]) keys)
     in
         List.map drawRow rows
 
@@ -252,12 +275,15 @@ httpErrorToString error =
 
 -- MISC
 
+
 getAllRowKeys : List DataRow -> List String
 getAllRowKeys rows =
     List.map Dict.keys rows
         |> List.map Set.fromList
         |> List.foldl Set.union Set.empty
         |> Set.toList
+
+
 
 -- MAIN
 
