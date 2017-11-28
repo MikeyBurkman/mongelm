@@ -161,11 +161,6 @@ getCollection name =
 -- View
 
 
-convert : Html DataGrid.Msg -> Html Msg
-convert html =
-    Html.map DataGridChange html
-
-
 view : Model -> Html Msg
 view model =
     Grid.container []
@@ -216,8 +211,8 @@ drawStatus status =
                 ]
 
         Just (StatusClickedHeader title) ->
-            Alert.danger
-                [ text ("A row was clicked: " ++ title)
+            Alert.info
+                [ text ("A header was clicked: " ++ title)
                 ]
 
 
@@ -245,7 +240,7 @@ drawFetchedData collection =
             div [] [ h3 [] [ text "No Data To Display" ] ]
 
         Fetched gridModel ->
-            DataGrid.view gridModel |> convert
+            DataGrid.view gridModel |> Html.map DataGridChange
 
 
 drawCollectionData : List String -> List DataRow -> List (Table.Row Msg)
