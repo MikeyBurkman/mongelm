@@ -243,25 +243,6 @@ drawFetchedData collection =
             DataGrid.view gridModel |> Html.map DataGridChange
 
 
-drawCollectionData : List String -> List DataRow -> List (Table.Row Msg)
-drawCollectionData keys rows =
-    let
-        getVal : String -> DataRow -> String
-        getVal key row =
-            case (Dict.get key row) of
-                Nothing ->
-                    ""
-
-                Just val ->
-                    val
-
-        drawRow : DataRow -> Table.Row Msg
-        drawRow row =
-            Table.tr [] (List.map (\key -> Table.td [] [ text (getVal key row) ]) keys)
-    in
-        List.map drawRow rows
-
-
 httpErrorToString : Http.Error -> String
 httpErrorToString error =
     case error of
@@ -279,18 +260,6 @@ httpErrorToString error =
 
         Http.BadPayload message _ ->
             "Parsing Error: " ++ message
-
-
-
--- MISC
-
-
-getAllRowKeys : List DataRow -> List String
-getAllRowKeys rows =
-    List.map Dict.keys rows
-        |> List.map Set.fromList
-        |> List.foldl Set.union Set.empty
-        |> Set.toList
 
 
 
