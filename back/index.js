@@ -37,9 +37,9 @@ server.get('/collections', (req, res, next) => {
 server.get('/collection/:id', (req, res, next) => {
     const id = req.params.id;
 
-    const data = R.range(0, 10).map(() => ({
-        _id: '' + Date.now(),
-        name: 'foo'
+    const data = R.range(0, 10).map((i) => ({
+        _id: '' + Date.now() + i,
+        name: 'foo-' + i
     }));
 
     Promise.delay(1500).then(() => {
