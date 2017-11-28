@@ -4,9 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "install": "cd front && yarn && cd ../back && yarn",
     "start": "run-p start-front start-back",
     "start-front": "cd front && yarn start",
-    "start-back": "cd back && yarn start"
+    "start-back": "cd back && yarn start",
+    "make-front": "cd front && yarn run make"
   },
   "author": "",
   "license": "MIT",

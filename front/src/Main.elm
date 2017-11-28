@@ -9,13 +9,15 @@ import Navigation exposing (Location)
 import UrlParser exposing ((</>))
 import Dict exposing (Dict)
 import Set exposing (Set)
+import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Row as Row
+import Bootstrap.Grid.Col as Col
 import Bootstrap.Alert as Alert
 import Bootstrap.CDN as CDN
-import Bootstrap.Grid as Grid
 import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Progress as Progress
 import Bootstrap.Table as Table
+import DataGrid as DataGrid
 
 
 host : String
@@ -28,20 +30,20 @@ type alias DataRow =
 
 
 type alias Model =
-    { status : Status
+    { status : Maybe Status
     , collectionNames : Maybe (List String)
     , currentCollection : CurCollection
     }
 
 
 type CurCollection
-    = Fetched ( String, List DataRow )
+    = Fetched DataGrid.Model
     | NotFetched
 
 
 init : Location -> ( Model, Cmd Msg )
 init location =
-    ( { status = StatusFetchingData
+    ( { status = Just StatusFetchingData
       , collectionNames = Nothing
       , currentCollection = NotFetched
       }
@@ -55,12 +57,15 @@ type Msg
     | FetchCollection String
     | AllCollectionsFetched (Result Http.Error (List String))
     | CollectionFetched String (Result Http.Error (List (Dict String String)))
+    | ClearStatus
+    | DataGridChange DataGrid.Msg
 
 
 type Status
     = StatusOk
     | StatusFetchingData
     | StatusServerError Http.Error
+    | StatusClickedHeader String
 
 
 
@@ -83,30 +88,30 @@ update msg model =
             ( model, Cmd.none )
 
         FetchAllCollections ->
-            ( { model | status = StatusFetchingData }, getCollections )
+            ( { model | status = Just StatusFetchingData }, getCollections )
 
         FetchCollection collectionName ->
-            ( { model | status = StatusFetchingData }, getCollection collectionName )
+            ( { model | status = Just StatusFetchingData }, getCollection collectionName )
 
         AllCollectionsFetched (Ok collections) ->
             ( { model
                 | collectionNames = Just collections
-                , status = StatusOk
+                , status = Just StatusOk
               }
             , Cmd.none
             )
 
         AllCollectionsFetched (Err error) ->
             ( { model
-                | status = StatusServerError error
+                | status = Just (StatusServerError error)
               }
             , Cmd.none
             )
 
         CollectionFetched collName (Ok rows) ->
             ( { model
-                | currentCollection = (Fetched ( collName, rows ))
-                , status = StatusOk
+                | currentCollection = (Fetched (DataGrid.Model collName rows))
+                , status = Just StatusOk
               }
             , Cmd.none
             )
@@ -114,10 +119,18 @@ update msg model =
         CollectionFetched collName (Err error) ->
             ( { model
                 | currentCollection = NotFetched
-                , status = StatusServerError error
+                , status = Just (StatusServerError error)
               }
             , Cmd.none
             )
+
+        ClearStatus ->
+            ( { model | status = Nothing }, Cmd.none )
+
+        DataGridChange gridMsg ->
+            case gridMsg of
+                DataGrid.ClickHeader title ->
+                    ( { model | status = Just (StatusClickedHeader title) }, Cmd.none )
 
 
 getCollections : Cmd Msg
@@ -148,6 +161,11 @@ getCollection name =
 -- View
 
 
+convert : Html DataGrid.Msg -> Html Msg
+convert html =
+    Html.map DataGridChange html
+
+
 view : Model -> Html Msg
 view model =
     Grid.container []
@@ -158,11 +176,11 @@ view model =
                     [ ( "position", "fixed" )
                     , ( "top", "0" )
                     , ( "width", "100%" )
-                    , ("z-index", "9999")
+                    , ( "z-index", "9999" )
                     ]
                 ]
             ]
-            [ (Grid.col [] [ drawStatus model.status ]) ]
+            [ (Grid.col [ Col.attrs [ onClick ClearStatus ] ] [ drawStatus model.status ]) ]
         , Grid.row
             [ Row.attrs
                 [ style
@@ -175,13 +193,16 @@ view model =
         ]
 
 
-drawStatus : Status -> Html Msg
+drawStatus : Maybe Status -> Html Msg
 drawStatus status =
     case status of
-        StatusOk ->
+        Nothing ->
+            span [] []
+
+        Just StatusOk ->
             Alert.success [ text "Success" ]
 
-        StatusFetchingData ->
+        Just StatusFetchingData ->
             Progress.progress
                 [ Progress.value 100
                 , Progress.animated
@@ -189,8 +210,15 @@ drawStatus status =
                 , Progress.height 32
                 ]
 
-        StatusServerError error ->
-            Alert.danger [ text (httpErrorToString error) ]
+        Just (StatusServerError error) ->
+            Alert.danger
+                [ text (httpErrorToString error)
+                ]
+
+        Just (StatusClickedHeader title) ->
+            Alert.danger
+                [ text ("A row was clicked: " ++ title)
+                ]
 
 
 drawCollections : Maybe (List String) -> Html Msg
@@ -216,22 +244,8 @@ drawFetchedData collection =
         NotFetched ->
             div [] [ h3 [] [ text "No Data To Display" ] ]
 
-        Fetched ( name, data ) ->
-            let
-                allKeys =
-                    getAllRowKeys data
-
-                drawHeader name =
-                    Table.th [] [ text name ]
-            in
-                div []
-                    [ h3 [] [ text name ]
-                    , Table.table
-                        { options = [ Table.striped, Table.hover, Table.bordered ]
-                        , thead = Table.simpleThead (List.map drawHeader allKeys)
-                        , tbody = Table.tbody [] (drawCollectionData allKeys data)
-                        }
-                    ]
+        Fetched gridModel ->
+            DataGrid.view gridModel |> convert
 
 
 drawCollectionData : List String -> List DataRow -> List (Table.Row Msg)
